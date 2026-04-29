@@ -1,0 +1,538 @@
+namespace IntuneAdminTool.ViewModels;
+
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Net.Http;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using IntuneAdminTool.Services;
+using Microsoft.Win32;
+
+public partial class ReportsViewModel : ObservableObject
+{
+    private readonly IGraphService _graphService;
+
+    [ObservableProperty]
+    private ObservableCollection<ReportDefinition> _availableReports = [];
+
+    [ObservableProperty]
+    private ReportDefinition? _selectedReport;
+
+    [ObservableProperty]
+    private ObservableCollection<Dictionary<string, string>> _reportData = [];
+
+    [ObservableProperty]
+    private ObservableCollection<string> _reportColumns = [];
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string? _statusMessage;
+
+    public ReportsViewModel(IGraphService graphService)
+    {
+        _graphService = graphService;
+        InitializeReports();
+    }
+
+    private void InitializeReports()
+    {
+        AvailableReports =
+        [
+            new ReportDefinition("Device Compliance Summary", "Devices grouped by compliance state",
+                ReportCategory.Devices, GenerateComplianceSummaryAsync),
+            new ReportDefinition("Non-Compliant Devices", "All devices that are non-compliant",
+                ReportCategory.Devices, GenerateNonCompliantDevicesAsync),
+            new ReportDefinition("Devices by OS", "Device count per operating system",
+                ReportCategory.Devices, GenerateDevicesByOsAsync),
+            new ReportDefinition("Devices by Manufacturer", "Device count per manufacturer",
+                ReportCategory.Devices, GenerateDevicesByManufacturerAsync),
+            new ReportDefinition("Stale Devices", "Devices that haven't synced in 30+ days",
+                ReportCategory.Devices, GenerateStaleDevicesAsync),
+            new ReportDefinition("Unassigned Apps", "Apps that have no assignments",
+                ReportCategory.Apps, GenerateUnassignedAppsAsync),
+            new ReportDefinition("Apps by Type", "App count per application type",
+                ReportCategory.Apps, GenerateAppsByTypeAsync),
+            new ReportDefinition("Windows Devices Not Encrypted", "Windows devices not encrypted with BitLocker",
+                ReportCategory.Devices, GenerateUnencryptedWindowsDevicesAsync),
+            new ReportDefinition("Google Chrome Versions", "Google Chrome versions installed on Windows devices with out-of-date detection",
+                ReportCategory.Apps, GenerateChromeVersionReportAsync),
+            new ReportDefinition("Mozilla Firefox Versions", "Mozilla Firefox versions installed on Windows devices with out-of-date detection",
+                ReportCategory.Apps, GenerateFirefoxVersionReportAsync),
+            new ReportDefinition("Microsoft Edge Versions", "Microsoft Edge versions installed on Windows devices with out-of-date detection",
+                ReportCategory.Apps, GenerateEdgeVersionReportAsync),
+            new ReportDefinition("Microsoft 365 Apps Versions", "Microsoft 365 Apps versions installed on Windows devices with out-of-date detection",
+                ReportCategory.Apps, GenerateM365AppsVersionReportAsync),
+            new ReportDefinition("BitLocker Encryption Status", "BitLocker encryption status of all Windows devices",
+                ReportCategory.Devices, GenerateBitlockerStatusReportAsync),
+        ];
+    }
+
+    private CancellationTokenSource? _reportCts;
+
+    [RelayCommand]
+    private async Task RunReportAsync()
+    {
+        if (SelectedReport == null) return;
+
+        _reportCts?.Cancel();
+        _reportCts = new CancellationTokenSource();
+        var token = _reportCts.Token;
+
+        try
+        {
+            IsLoading = true;
+            StatusMessage = $"Running report: {SelectedReport.Name}...";
+            ReportData = [];
+            ReportColumns = [];
+
+            var (columns, data) = await SelectedReport.Generator();
+
+            token.ThrowIfCancellationRequested();
+
+            ReportColumns = new ObservableCollection<string>(columns);
+            ReportData = new ObservableCollection<Dictionary<string, string>>(data);
+            StatusMessage = $"{data.Count} row(s) returned.";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Report cancelled.";
+        }
+        catch (Exception ex)
+        {
+            if (!token.IsCancellationRequested)
+                StatusMessage = $"Report failed: {ex.Message}";
+            else
+                StatusMessage = "Report cancelled.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelReport()
+    {
+        _reportCts?.Cancel();
+        StatusMessage = "Cancelling report...";
+    }
+
+    [RelayCommand]
+    private void ExportToCsv()
+    {
+        if (ReportData.Count == 0 || ReportColumns.Count == 0)
+        {
+            StatusMessage = "No data to export.";
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv",
+            FileName = $"{SelectedReport?.Name ?? "Report"}_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                using var writer = new StreamWriter(dialog.FileName);
+                // Header
+                writer.WriteLine(string.Join(",", ReportColumns.Select(EscapeCsv)));
+                // Rows
+                foreach (var row in ReportData)
+                {
+                    var values = ReportColumns.Select(col =>
+                        row.TryGetValue(col, out var val) ? EscapeCsv(val ?? "") : "");
+                    writer.WriteLine(string.Join(",", values));
+                }
+                StatusMessage = $"Exported to {dialog.FileName}";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Export failed: {ex.Message}";
+            }
+        }
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
+
+    // --- Report Generators ---
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateComplianceSummaryAsync()
+    {
+        var devices = await _graphService.GetManagedDevicesAsync();
+        var groups = devices.GroupBy(d => d.ComplianceState?.ToString() ?? "Unknown")
+            .Select(g => new Dictionary<string, string>
+            {
+                ["Compliance State"] = g.Key,
+                ["Count"] = g.Count().ToString()
+            }).ToList();
+
+        return (["Compliance State", "Count"], groups);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateNonCompliantDevicesAsync()
+    {
+        var devices = await _graphService.GetManagedDevicesAsync();
+        var nonCompliant = devices
+            .Where(d => d.ComplianceState == Microsoft.Graph.Models.ComplianceState.Noncompliant)
+            .Select(d => new Dictionary<string, string>
+            {
+                ["Device Name"] = d.DeviceName ?? "",
+                ["User"] = d.UserDisplayName ?? "",
+                ["UPN"] = d.UserPrincipalName ?? "",
+                ["OS"] = d.OperatingSystem ?? "",
+                ["OS Version"] = d.OsVersion ?? "",
+                ["Last Sync"] = d.LastSyncDateTime?.ToString("g") ?? ""
+            }).ToList();
+
+        return (["Device Name", "User", "UPN", "OS", "OS Version", "Last Sync"], nonCompliant);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateDevicesByOsAsync()
+    {
+        var devices = await _graphService.GetManagedDevicesAsync();
+        var groups = devices.GroupBy(d => d.OperatingSystem ?? "Unknown")
+            .OrderByDescending(g => g.Count())
+            .Select(g => new Dictionary<string, string>
+            {
+                ["Operating System"] = g.Key,
+                ["Count"] = g.Count().ToString()
+            }).ToList();
+
+        return (["Operating System", "Count"], groups);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateDevicesByManufacturerAsync()
+    {
+        var devices = await _graphService.GetManagedDevicesAsync();
+        var groups = devices.GroupBy(d => d.Manufacturer ?? "Unknown")
+            .OrderByDescending(g => g.Count())
+            .Select(g => new Dictionary<string, string>
+            {
+                ["Manufacturer"] = g.Key,
+                ["Count"] = g.Count().ToString()
+            }).ToList();
+
+        return (["Manufacturer", "Count"], groups);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateStaleDevicesAsync()
+    {
+        var devices = await _graphService.GetManagedDevicesAsync();
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-30);
+        var stale = devices
+            .Where(d => d.LastSyncDateTime < cutoff)
+            .OrderBy(d => d.LastSyncDateTime)
+            .Select(d => new Dictionary<string, string>
+            {
+                ["Device Name"] = d.DeviceName ?? "",
+                ["User"] = d.UserDisplayName ?? "",
+                ["OS"] = d.OperatingSystem ?? "",
+                ["Last Sync"] = d.LastSyncDateTime?.ToString("g") ?? "",
+                ["Days Since Sync"] = d.LastSyncDateTime.HasValue
+                    ? ((int)(DateTimeOffset.UtcNow - d.LastSyncDateTime.Value).TotalDays).ToString()
+                    : "Never"
+            }).ToList();
+
+        return (["Device Name", "User", "OS", "Last Sync", "Days Since Sync"], stale);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateUnassignedAppsAsync()
+    {
+        var apps = await _graphService.GetMobileAppsAsync();
+        var assignmentInfo = await _graphService.GetMobileAppAssignmentInfoAsync();
+        var assignedIds = assignmentInfo.Where(a => a.IsAssigned).Select(a => a.Id).ToHashSet();
+
+        var unassigned = apps
+            .Where(a => a.Id != null && !assignedIds.Contains(a.Id))
+            .Select(a => new Dictionary<string, string>
+            {
+                ["App Name"] = a.DisplayName ?? "",
+                ["Publisher"] = a.Publisher ?? "",
+                ["Created"] = a.CreatedDateTime?.ToString("d") ?? ""
+            }).ToList();
+
+        return (["App Name", "Publisher", "Created"], unassigned);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateAppsByTypeAsync()
+    {
+        var assignmentInfo = await _graphService.GetMobileAppAssignmentInfoAsync();
+        var groups = assignmentInfo
+            .GroupBy(a => FormatAppType(a.OdataType))
+            .OrderByDescending(g => g.Count())
+            .Select(g => new Dictionary<string, string>
+            {
+                ["App Type"] = g.Key,
+                ["Count"] = g.Count().ToString()
+            }).ToList();
+
+        return (["App Type", "Count"], groups);
+    }
+
+    private static string FormatAppType(string? odataType)
+    {
+        if (string.IsNullOrEmpty(odataType)) return "Unknown";
+        var name = odataType.Split('.').LastOrDefault() ?? odataType;
+        return name switch
+        {
+            "win32LobApp" => "Windows app (Win32)",
+            "winGetApp" => "New Microsoft Store app",
+            "officeSuiteApp" => "Microsoft 365 Apps for Windows 10 and later",
+            "webApp" => "Web link",
+            "iosStoreApp" => "iOS store app",
+            "iosVppApp" => "iOS/iPadOS app (VPP)",
+            "androidManagedStoreApp" => "Managed Google Play app",
+            "macOSDmgApp" => "macOS app (DMG)",
+            "macOSPkgApp" => "macOS app (PKG)",
+            _ => System.Text.RegularExpressions.Regex.Replace(name, "([a-z])([A-Z])", "$1 $2")
+        };
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateUnencryptedWindowsDevicesAsync()
+    {
+        var devices = await _graphService.GetManagedDevicesAsync();
+        var unencrypted = devices
+            .Where(d => d.OperatingSystem?.StartsWith("Windows", StringComparison.OrdinalIgnoreCase) == true
+                        && d.IsEncrypted != true)
+            .Select(d => new Dictionary<string, string>
+            {
+                ["Device Name"] = d.DeviceName ?? "",
+                ["User"] = d.UserDisplayName ?? "",
+                ["UPN"] = d.UserPrincipalName ?? "",
+                ["OS Version"] = d.OsVersion ?? "",
+                ["Compliance State"] = d.ComplianceState?.ToString() ?? "",
+                ["Encrypted"] = d.IsEncrypted == true ? "Yes" : "No",
+                ["Last Sync"] = d.LastSyncDateTime?.ToString("g") ?? ""
+            }).ToList();
+
+        return (["Device Name", "User", "UPN", "OS Version", "Compliance State", "Encrypted", "Last Sync"], unencrypted);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateChromeVersionReportAsync()
+    {
+        // Get the latest stable Chrome version
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient();
+            latestVersion = (await httpClient.GetStringAsync(
+                "https://chromiumdash.appspot.com/fetch/releases?channel=Stable&platform=Windows&num=1"))
+                .Split("\"version\":\"")
+                .Skip(1)
+                .FirstOrDefault()
+                ?.Split('"')
+                .FirstOrDefault();
+        }
+        catch
+        {
+            // If we can't fetch latest version, we'll still show installed versions
+        }
+
+        // Get Chrome detected app info from Intune
+        var chromeDevices = await _graphService.GetDetectedAppDevicesAsync("Google Chrome");
+
+        var data = chromeDevices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
+    }
+
+    private static int CompareVersions(string installed, string latest)
+    {
+        var installedParts = installed.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+        var latestParts = latest.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+
+        var maxLength = Math.Max(installedParts.Length, latestParts.Length);
+        for (int i = 0; i < maxLength; i++)
+        {
+            var a = i < installedParts.Length ? installedParts[i] : 0;
+            var b = i < latestParts.Length ? latestParts[i] : 0;
+            if (a < b) return -1;
+            if (a > b) return 1;
+        }
+        return 0;
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateFirefoxVersionReportAsync()
+    {
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetStringAsync("https://product-details.mozilla.org/1.0/firefox_versions.json");
+            // Parse: {"LATEST_FIREFOX_VERSION":"xxx.x.x",...}
+            var match = System.Text.RegularExpressions.Regex.Match(response, "\"LATEST_FIREFOX_VERSION\"\\s*:\\s*\"([^\"]+)\"");
+            if (match.Success) latestVersion = match.Groups[1].Value;
+        }
+        catch { }
+
+        var firefoxDevices = await _graphService.GetDetectedAppDevicesAsync("Firefox");
+
+        var data = firefoxDevices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateEdgeVersionReportAsync()
+    {
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetStringAsync("https://edgeupdates.microsoft.com/api/products");
+            // Find Stable channel version
+            var stableMatch = System.Text.RegularExpressions.Regex.Match(response,
+                "\"Product\"\\s*:\\s*\"Stable\".*?\"ProductVersion\"\\s*:\\s*\"([^\"]+)\"",
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+            if (stableMatch.Success) latestVersion = stableMatch.Groups[1].Value;
+        }
+        catch { }
+
+        var edgeDevices = await _graphService.GetDetectedAppDevicesAsync("Microsoft Edge");
+
+        var data = edgeDevices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateM365AppsVersionReportAsync()
+    {
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient();
+            // Microsoft publishes Office update history — use Current Channel latest
+            var response = await httpClient.GetStringAsync("https://clients.config.office.net/releases/v1.0/OfficeReleases");
+            // Extract the latest Current Channel version
+            var match = System.Text.RegularExpressions.Regex.Match(response,
+                "\"latestVersion\"\\s*:\\s*\"([^\"]+)\"");
+            if (match.Success) latestVersion = match.Groups[1].Value;
+        }
+        catch { }
+
+        var m365Devices = await _graphService.GetDetectedAppDevicesAsync("Microsoft 365 Apps");
+        // Also check for "Microsoft Office" if no results
+        if (m365Devices.Count == 0)
+            m365Devices = await _graphService.GetDetectedAppDevicesAsync("Microsoft Office");
+
+        var data = m365Devices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateBitlockerStatusReportAsync()
+    {
+        var devices = await _graphService.GetManagedDevicesAsync();
+        var windowsDevices = devices
+            .Where(d => d.OperatingSystem?.StartsWith("Windows", StringComparison.OrdinalIgnoreCase) == true)
+            .OrderBy(d => d.DeviceName)
+            .Select(d => new Dictionary<string, string>
+            {
+                ["Device Name"] = d.DeviceName ?? "",
+                ["User"] = d.UserDisplayName ?? "",
+                ["UPN"] = d.UserPrincipalName ?? "",
+                ["OS Version"] = d.OsVersion ?? "",
+                ["Encrypted"] = d.IsEncrypted == true ? "Yes" : "No",
+                ["Compliance State"] = d.ComplianceState?.ToString() ?? "",
+                ["Last Sync"] = d.LastSyncDateTime?.ToString("g") ?? ""
+            }).ToList();
+
+        return (["Device Name", "User", "UPN", "OS Version", "Encrypted", "Compliance State", "Last Sync"], windowsDevices);
+    }
+}
+
+public enum ReportCategory
+{
+    Devices,
+    Apps
+}
+
+public class ReportDefinition
+{
+    public string Name { get; }
+    public string Description { get; }
+    public ReportCategory Category { get; }
+    public Func<Task<(List<string> Columns, List<Dictionary<string, string>> Data)>> Generator { get; }
+
+    public ReportDefinition(string name, string description, ReportCategory category,
+        Func<Task<(List<string> Columns, List<Dictionary<string, string>> Data)>> generator)
+    {
+        Name = name;
+        Description = description;
+        Category = category;
+        Generator = generator;
+    }
+}

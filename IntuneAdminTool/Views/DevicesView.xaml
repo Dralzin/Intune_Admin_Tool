@@ -1,0 +1,156 @@
+﻿<UserControl x:Class="IntuneAdminTool.Views.DevicesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Margin="10">
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="300" Padding="5" VerticalContentAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding OsFilterOptions}" SelectedItem="{Binding SelectedOsFilter}" Width="150" Margin="5,0" Padding="5" VerticalContentAlignment="Center"/>
+            <Button Content="Search" Command="{Binding SearchCommand}" Margin="5,0" Padding="10,5"/>
+        </StackPanel>
+        <TextBlock Grid.Row="1" Text="Loading devices..." Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20"/>
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" AutoGenerateColumns="False" IsReadOnly="True" Margin="10" CanUserSortColumns="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200"/>
+                <DataGridTextColumn Header="User" Binding="{Binding UserDisplayName}" Width="150"/>
+                <DataGridTextColumn Header="UPN" Binding="{Binding UserPrincipalName}" Width="200"/>
+                <DataGridTextColumn Header="Employee ID" Binding="{Binding EmployeeId}" Width="120"/>
+                <DataGridTextColumn Header="OS" Binding="{Binding OperatingSystem}" Width="100"/>
+                <DataGridTextColumn Header="OS Version" Binding="{Binding OsVersion}" Width="120"/>
+                <DataGridTextColumn Header="Compliance" Binding="{Binding ComplianceState}" Width="120"/>
+                <DataGridTextColumn Header="Last Sync" Binding="{Binding LastSyncDateTime, StringFormat=g}" Width="160"/>
+                <DataGridTextColumn Header="Ownership" Binding="{Binding ManagedDeviceOwnerType}" Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <GroupBox Grid.Row="2" Header="Device Details" Margin="10" Visibility="{Binding SelectedDevice, Converter={StaticResource NullToCollapsed}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="10">
+                    <!-- Read-only properties (always shown) -->
+                    <TextBlock Text="{Binding SelectedDevice.UserDisplayName, StringFormat='User: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.UserPrincipalName, StringFormat='UPN: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.EmployeeId, StringFormat='Employee ID: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.EmailAddress, StringFormat='Email: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.OperatingSystem, StringFormat='OS: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.OsVersion, StringFormat='OS Version: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.ComplianceState, StringFormat='Compliance: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.SerialNumber, StringFormat='Serial: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.Model, StringFormat='Model: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.Manufacturer, StringFormat='Manufacturer: {0}'}" Margin="0,2"/>
+                    <TextBlock Text="{Binding SelectedDevice.ManagementAgent, StringFormat='Managed by: {0}'}" Margin="0,2"/>
+
+                    <Separator Margin="0,8"/>
+
+                    <!-- View mode: show current values + Edit button -->
+                    <StackPanel Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVisibility}}">
+                        <TextBlock Text="{Binding SelectedDevice.DeviceName, StringFormat='Device Name: {0}'}" Margin="0,2"/>
+                        <TextBlock Text="{Binding SelectedDevice.ManagedDeviceOwnerType, StringFormat='Ownership: {0}'}" Margin="0,2"/>
+                        <TextBlock Text="{Binding SelectedDevice.DeviceCategoryDisplayName, StringFormat='Device Category: {0}'}" Margin="0,2"/>
+                        <TextBlock Text="{Binding SelectedDevice.Notes, StringFormat='Notes: {0}'}" Margin="0,2" TextWrapping="Wrap"/>
+                        <Button Content="Edit Properties" Command="{Binding EditDeviceCommand}" 
+                                Margin="0,10,0,0" Padding="16,6" HorizontalAlignment="Left"
+                                Style="{StaticResource PrimaryButtonStyle}"/>
+                    </StackPanel>
+
+                    <!-- Edit mode: editable fields + Save/Cancel -->
+                    <StackPanel Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="Device Name" FontWeight="SemiBold" Margin="0,4,0,2"/>
+                        <TextBox Text="{Binding SelectedDevice.EditDeviceName, UpdateSourceTrigger=PropertyChanged}" 
+                                 Padding="5" Width="350" HorizontalAlignment="Left"/>
+
+                        <TextBlock Text="Ownership" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                        <ComboBox ItemsSource="{Binding OwnershipOptions}" 
+                                  SelectedItem="{Binding SelectedDevice.EditManagedDeviceOwnerType}" 
+                                  Width="200" HorizontalAlignment="Left" Padding="5"/>
+
+                        <TextBlock Text="Device Category" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                        <ComboBox ItemsSource="{Binding DeviceCategories}" 
+                                  SelectedItem="{Binding SelectedDevice.EditDeviceCategory}" 
+                                  DisplayMemberPath="DisplayName"
+                                  Width="250" HorizontalAlignment="Left" Padding="5"/>
+
+                        <TextBlock Text="Notes" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                        <TextBox Text="{Binding SelectedDevice.EditNotes, UpdateSourceTrigger=PropertyChanged}" 
+                                 Padding="5" Width="350" Height="80" HorizontalAlignment="Left"
+                                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="Save" Command="{Binding SaveDeviceCommand}" 
+                                    Padding="16,6" Margin="0,0,8,0"
+                                    IsEnabled="{Binding IsSaving, Converter={StaticResource InverseBoolToVisibility}}"
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button Content="Cancel" Command="{Binding CancelEditCommand}" 
+                                    Padding="16,6"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Status message -->
+                    <TextBlock Text="{Binding EditStatusMessage}" Margin="0,8,0,0" 
+                               Foreground="#605E5C" FontStyle="Italic"
+                               Visibility="{Binding EditStatusMessage, Converter={StaticResource NullToCollapsed}}"/>
+
+                    <Separator Margin="0,12"/>
+
+                    <!-- User Assignment Section -->
+                    <StackPanel Visibility="{Binding IsUserAssignmentVisible, Converter={StaticResource InverseBoolToVisibility}}">
+                        <Button Content="Manage User Assignment" Command="{Binding ShowUserAssignmentCommand}"
+                                Padding="16,6" HorizontalAlignment="Left"
+                                Style="{StaticResource PrimaryButtonStyle}"/>
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding IsUserAssignmentVisible, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="User Assignment" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                        <!-- UPN Input -->
+                        <TextBlock Text="User Principal Name (UPN)" FontWeight="SemiBold" Margin="0,4,0,2"/>
+                        <TextBox Text="{Binding AssignUserUpn, UpdateSourceTrigger=PropertyChanged}" 
+                                 Padding="5" Width="350" HorizontalAlignment="Left"/>
+
+                        <!-- Intune Primary User -->
+                        <TextBlock Text="Intune Primary User" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                        <TextBlock Text="{Binding SelectedDevice.UserDisplayName, StringFormat='Current: {0}'}" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Set Primary User" Command="{Binding SetPrimaryUserCommand}"
+                                    Padding="12,5" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button Content="Remove Primary User" Command="{Binding RemovePrimaryUserCommand}"
+                                    Padding="12,5"/>
+                        </StackPanel>
+
+                        <!-- Azure AD Device Owners -->
+                        <TextBlock Text="Azure AD Device Owners" FontWeight="SemiBold" Margin="0,16,0,4"/>
+                        <ListBox ItemsSource="{Binding CurrentOwners}" SelectedItem="{Binding SelectedOwner}"
+                                 Height="80" Width="450" HorizontalAlignment="Left" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Add Owner" Command="{Binding AddDeviceOwnerCommand}"
+                                    Padding="12,5" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button Content="Remove Selected Owner" Command="{Binding RemoveDeviceOwnerCommand}"
+                                    Padding="12,5"/>
+                        </StackPanel>
+
+                        <!-- Azure AD Registered Users -->
+                        <TextBlock Text="Azure AD Registered Users" FontWeight="SemiBold" Margin="0,16,0,4"/>
+                        <ListBox ItemsSource="{Binding CurrentRegisteredUsers}" SelectedItem="{Binding SelectedRegisteredUser}"
+                                 Height="80" Width="450" HorizontalAlignment="Left" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Add Registered User" Command="{Binding AddRegisteredUserCommand}"
+                                    Padding="12,5" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button Content="Remove Selected User" Command="{Binding RemoveRegisteredUserCommand}"
+                                    Padding="12,5"/>
+                        </StackPanel>
+
+                        <!-- Assignment Status -->
+                        <TextBlock Text="{Binding UserAssignmentStatus}" Margin="0,8,0,0"
+                                   Foreground="#605E5C" FontStyle="Italic"
+                                   Visibility="{Binding UserAssignmentStatus, Converter={StaticResource NullToCollapsed}}"/>
+
+                        <Button Content="Close" Command="{Binding HideUserAssignmentCommand}"
+                                Padding="12,5" Margin="0,12,0,0" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </GroupBox>
+    </Grid>
+</UserControl>

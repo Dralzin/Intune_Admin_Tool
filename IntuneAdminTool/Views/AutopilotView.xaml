@@ -1,0 +1,251 @@
+<UserControl x:Class="IntuneAdminTool.Views.AutopilotView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Loading Autopilot data..." Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" HorizontalAlignment="Center" Margin="0,10"/>
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" Margin="10,5" Visibility="{Binding ErrorMessage, Converter={StaticResource NullToCollapsed}}"/>
+
+        <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}" Margin="10">
+            <!-- Autopilot Devices Tab -->
+            <TabItem Header="Devices">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBox Text="{Binding DeviceSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                             Width="300" Padding="5" Margin="0,8,0,8" HorizontalAlignment="Left"
+                             VerticalContentAlignment="Center"/>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding AutopilotDevices}" SelectedItem="{Binding SelectedDevice}"
+                              AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="160"/>
+                            <DataGridTextColumn Header="Manufacturer" Binding="{Binding Manufacturer}" Width="130"/>
+                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150"/>
+                            <DataGridTextColumn Header="Group Tag" Binding="{Binding GroupTag}" Width="120"/>
+                            <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" Width="150"/>
+                            <DataGridTextColumn Header="User" Binding="{Binding UserPrincipalName}" Width="180"/>
+                            <DataGridTextColumn Header="Profile Status" Binding="{Binding DeploymentProfileAssignmentStatus}" Width="130"/>
+                            <DataGridTextColumn Header="Last Contact" Binding="{Binding LastContactedDateTime, StringFormat=g}" Width="140"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <GroupBox Grid.Row="1" Header="Device Details" Margin="0,8,0,0" 
+                              Visibility="{Binding SelectedDevice, Converter={StaticResource NullToCollapsed}}">
+                        <Grid Margin="10" DataContext="{Binding SelectedDevice}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Id}" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Serial Number:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SerialNumber}" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Managed Device ID:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ManagedDeviceId}" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="Enrollment Date:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding EnrollmentDateTime, StringFormat=g}" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Group Tag:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GroupTag}" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="User:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding UserPrincipalName}" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Manufacturer:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Manufacturer}" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="2" Text="Model:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding Model}" Margin="0,2"/>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <!-- Deployment Profiles Tab -->
+            <TabItem Header="Deployment Profiles">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <DataGrid ItemsSource="{Binding DeploymentProfiles}" SelectedItem="{Binding SelectedProfile}"
+                              AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" Width="250"/>
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="300"/>
+                            <DataGridTextColumn Header="White Glove" Binding="{Binding EnableWhiteGlove}" Width="100"/>
+                            <DataGridTextColumn Header="Device Name Template" Binding="{Binding DeviceNameTemplate}" Width="180"/>
+                            <DataGridTextColumn Header="Created" Binding="{Binding CreatedDateTime, StringFormat=g}" Width="140"/>
+                            <DataGridTextColumn Header="Last Modified" Binding="{Binding LastModifiedDateTime, StringFormat=g}" Width="140"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <GroupBox Grid.Row="1" Header="Profile Details" Margin="0,8,0,0"
+                              Visibility="{Binding SelectedProfile, Converter={StaticResource NullToCollapsed}}">
+                        <StackPanel>
+                        <Grid Margin="10" DataContext="{Binding SelectedProfile}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Id}" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Device Type:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding DeviceType}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Display Name:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DisplayName}" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="Language:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Language}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Description:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Description}" TextWrapping="Wrap" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Device Name Template:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding DeviceNameTemplate}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="White Glove (Pre-provisioning):" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding EnableWhiteGlove}" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="2" Text="Extract Hardware Hash:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding ExtractHardwareHash}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Hide Privacy Settings:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding OutOfBoxExperienceSettingsHidePrivacySettings}" Margin="0,2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="2" Text="Hide EULA:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding OutOfBoxExperienceSettingsHideEula}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="User Type:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding OutOfBoxExperienceSettingsUserType}" Margin="0,2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="2" Text="Skip Keyboard Selection:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="3" Text="{Binding OutOfBoxExperienceSettingsSkipKeyboardSelectionPage}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Created:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding CreatedDateTime, StringFormat=g}" Margin="0,2"/>
+                            <TextBlock Grid.Row="6" Grid.Column="2" Text="Last Modified:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="6" Grid.Column="3" Text="{Binding LastModifiedDateTime, StringFormat=g}" Margin="0,2"/>
+                        </Grid>
+
+                        <!-- Profile Assignments -->
+                        <TextBlock Text="Assignments" FontWeight="SemiBold" Margin="10,12,0,4" Foreground="#0078D4"
+                                   DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <TextBlock Text="{Binding ProfileAssignmentsStatus}" Margin="10,2,0,4" Foreground="#605E5C" FontStyle="Italic"
+                                   DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   Visibility="{Binding ProfileAssignmentsStatus, Converter={StaticResource NullToCollapsed}}"/>
+                        <DataGrid ItemsSource="{Binding DataContext.ProfileAssignments, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="150"
+                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                  BorderThickness="1" BorderBrush="#EDEBE9" Margin="10,0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Group" Binding="{Binding GroupDisplayName}" Width="300"/>
+                                <DataGridTextColumn Header="Assignment Type" Binding="{Binding AssignmentType}" Width="120"/>
+                                <DataGridTextColumn Header="Group ID" Binding="{Binding GroupId}" Width="280"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <!-- Enrollment Status Pages Tab -->
+            <TabItem Header="Enrollment Status Pages">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <DataGrid ItemsSource="{Binding EnrollmentStatusPages}" SelectedItem="{Binding SelectedEsp}"
+                              AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" Width="250"/>
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="250"/>
+                            <DataGridTextColumn Header="Show Progress" Binding="{Binding ShowInstallationProgress}" Width="110"/>
+                            <DataGridTextColumn Header="Block Retry" Binding="{Binding BlockDeviceSetupRetryByUser}" Width="100"/>
+                            <DataGridTextColumn Header="Allow Reset" Binding="{Binding AllowDeviceResetOnInstallFailure}" Width="100"/>
+                            <DataGridTextColumn Header="Timeout (min)" Binding="{Binding InstallProgressTimeoutInMinutes}" Width="100"/>
+                            <DataGridTextColumn Header="Last Modified" Binding="{Binding LastModifiedDateTime, StringFormat=g}" Width="140"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <GroupBox Grid.Row="1" Header="ESP Details" Margin="0,8,0,0"
+                              Visibility="{Binding SelectedEsp, Converter={StaticResource NullToCollapsed}}">
+                        <StackPanel>
+                        <Grid Margin="10" DataContext="{Binding SelectedEsp}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="240"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="240"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Id}" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Display Name:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding DisplayName}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Description:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Description}" TextWrapping="Wrap" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="Timeout (minutes):" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding InstallProgressTimeoutInMinutes}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Show Installation Progress:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ShowInstallationProgress}" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Block Setup Retry by User:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding BlockDeviceSetupRetryByUser}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Allow Reset on Install Failure:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AllowDeviceResetOnInstallFailure}" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="2" Text="Allow Log Collection on Failure:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding AllowLogCollectionOnInstallFailure}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Allow Non-Blocking App Install:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AllowNonBlockingAppInstallation}" Margin="0,2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="2" Text="Track Progress for Autopilot Only:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding TrackInstallProgressForAutopilotOnly}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Disable User Tracking After First User:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding DisableUserStatusTrackingAfterFirstUser}" Margin="0,2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="2" Text="Custom Error Message:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="3" Text="{Binding CustomErrorMessage}" TextWrapping="Wrap" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Created:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding CreatedDateTime, StringFormat=g}" Margin="0,2"/>
+                            <TextBlock Grid.Row="6" Grid.Column="2" Text="Last Modified:" FontWeight="SemiBold" Margin="0,2"/>
+                            <TextBlock Grid.Row="6" Grid.Column="3" Text="{Binding LastModifiedDateTime, StringFormat=g}" Margin="0,2"/>
+                        </Grid>
+
+                        <!-- ESP Assignments -->
+                        <TextBlock Text="Assignments" FontWeight="SemiBold" Margin="10,12,0,4" Foreground="#0078D4"
+                                   DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <TextBlock Text="{Binding EspAssignmentsStatus}" Margin="10,2,0,4" Foreground="#605E5C" FontStyle="Italic"
+                                   DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   Visibility="{Binding EspAssignmentsStatus, Converter={StaticResource NullToCollapsed}}"/>
+                        <DataGrid ItemsSource="{Binding DataContext.EspAssignments, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="150"
+                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                  BorderThickness="1" BorderBrush="#EDEBE9" Margin="10,0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Group" Binding="{Binding GroupDisplayName}" Width="300"/>
+                                <DataGridTextColumn Header="Assignment Type" Binding="{Binding AssignmentType}" Width="120"/>
+                                <DataGridTextColumn Header="Group ID" Binding="{Binding GroupId}" Width="280"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

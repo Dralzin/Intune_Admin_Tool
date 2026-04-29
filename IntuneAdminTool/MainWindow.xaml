@@ -1,0 +1,202 @@
+﻿<Window x:Class="IntuneAdminTool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:IntuneAdminTool.ViewModels"
+        xmlns:views="clr-namespace:IntuneAdminTool.Views"
+        mc:Ignorable="d"
+        Title="Microsoft Intune Admin Tool" Height="768" Width="1280" WindowStartupLocation="CenterScreen"
+        Icon="Images/IntuneLogo.png" Background="#F3F2F1">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Header Bar - Microsoft Intune style dark header -->
+        <Border Background="#1B1A19">
+            <DockPanel>
+                <!-- Left: Waffle + Title -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                               Foreground="White" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <TextBlock Text="Microsoft Intune admin center" FontSize="14" FontWeight="SemiBold"
+                               Foreground="White" VerticalAlignment="Center"/>
+                </StackPanel>
+                <!-- Right: User info + Sign In/Out -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" 
+                            VerticalAlignment="Center" Margin="0,0,12,0">
+                    <TextBlock Text="{Binding UserName}" Foreground="#CCCCCC" FontSize="12"
+                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button Content="Sign In" Command="{Binding LoginCommand}"
+                            Visibility="{Binding IsAuthenticated, Converter={StaticResource InverseBoolToVisibility}}"
+                            Style="{StaticResource HeaderButtonStyle}"/>
+                    <Button Content="Sign Out" Command="{Binding LogoutCommand}"
+                            Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVisibility}}"
+                            Style="{StaticResource HeaderButtonStyle}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVisibility}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Navigation Pane -->
+            <Border Background="White" BorderBrush="#EDEBE9" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <!-- Settings button always at bottom -->
+                    <Button DockPanel.Dock="Bottom" Command="{Binding NavigateToSettingsCommand}" Style="{StaticResource NavButtonStyle}"
+                            Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                            <TextBlock Text="Settings" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <!-- Navigation Items -->
+                    <ScrollViewer DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="0,8">
+                            <Button Command="{Binding NavigateToDevicesCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8EA;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Devices" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding NavigateToComplianceCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Compliance" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding NavigateToConfigurationCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE9F5;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Configuration" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding NavigateToAppsCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE74C;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Apps" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding NavigateToAutopilotCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE964;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Autopilot" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding NavigateToReportsCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Reports" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding NavigateToWindowsUpdatesCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Windows Updates" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Content Area -->
+            <Border Grid.Column="1" Background="#FAF9F8" Padding="24,16">
+                <ContentControl Content="{Binding CurrentView}">
+                    <ContentControl.Resources>
+                        <DataTemplate DataType="{x:Type vm:DevicesViewModel}">
+                            <views:DevicesView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:ComplianceViewModel}">
+                            <views:ComplianceView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:ConfigurationViewModel}">
+                            <views:ConfigurationView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:AppsViewModel}">
+                            <views:AppsView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:AutopilotViewModel}">
+                            <views:AutopilotView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:ReportsViewModel}">
+                            <views:ReportsView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:WindowsUpdatesViewModel}">
+                            <views:WindowsUpdatesView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+                            <views:SettingsView/>
+                        </DataTemplate>
+                    </ContentControl.Resources>
+                </ContentControl>
+            </Border>
+        </Grid>
+
+        <!-- Login Prompt (when not authenticated) -->
+        <Grid Grid.Row="1" Visibility="{Binding IsAuthenticated, Converter={StaticResource InverseBoolToVisibility}}">
+            <!-- Login content (hidden when settings is showing) -->
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding IsSettingsVisible, Converter={StaticResource InverseBoolToVisibility}}">
+                <Image Source="Images/IntuneLogo.png" Width="80" Height="80" Margin="0,0,0,24"/>
+                <TextBlock Text="Microsoft Intune Admin Tool" FontSize="28" FontWeight="Light" 
+                           HorizontalAlignment="Center" Margin="0,0,0,8" Foreground="#323130"/>
+                <TextBlock Text="Sign in with your organizational account to manage devices, apps, and policies."
+                           HorizontalAlignment="Center" Margin="0,0,0,32" Foreground="#605E5C" FontSize="14"/>
+                <Button Content="Sign in" Command="{Binding LoginCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Settings view when not authenticated -->
+            <Grid Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Button Content="← Back" Command="{Binding HideSettingsCommand}" 
+                        HorizontalAlignment="Left" Margin="16,12" Padding="12,6"/>
+                <ContentControl Grid.Row="1" Content="{Binding SettingsViewModel}">
+                    <ContentControl.Resources>
+                        <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+                            <views:SettingsView/>
+                        </DataTemplate>
+                    </ContentControl.Resources>
+                </ContentControl>
+            </Grid>
+
+            <!-- Settings button in bottom-left on login screen -->
+            <Button Command="{Binding ShowSettingsCommand}" 
+                    HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,8"
+                    Style="{StaticResource NavButtonStyle}" Width="240"
+                    Visibility="{Binding IsSettingsVisible, Converter={StaticResource InverseBoolToVisibility}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Text="Settings" FontSize="13" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="#F3F2F1" Padding="16,6" 
+                BorderBrush="#EDEBE9" BorderThickness="0,1,0,0">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#605E5C" FontSize="11"/>
+        </Border>
+    </Grid>
+</Window>
