@@ -117,7 +117,7 @@ The following **delegated** permissions are required for full functionality:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Dralzin/Intune_Admin_Tool.git
+   git clone https://github.com/Dralzin1/Intune_Admin_Tool.git
    ```
 2. Open `Intune_Admin_Tool.sln` in Visual Studio 2022+ or later.
 3. Build and run the application.
