@@ -29,6 +29,8 @@ public interface IGraphService
     Task<List<WindowsFeatureUpdate>> GetWindowsFeatureUpdatesAsync();
     Task<List<WindowsDriverUpdate>> GetWindowsDriverUpdatesAsync();
     Task<List<DetectedAppDevice>> GetDetectedAppDevicesAsync(string appName);
+    Task<List<AppProtectionPolicyItem>> GetAppProtectionPoliciesAsync();
+    Task<List<ProfileAssignment>> GetAppProtectionPolicyAssignmentsAsync(string policyId, string policyType);
     Task<List<AutopilotPrepPolicyItem>> GetDevicePreparationPoliciesAsync();
     Task<List<MobileApp>> GetMobileAppsAsync();
     Task<List<AppAssignmentInfo>> GetMobileAppAssignmentInfoAsync();
@@ -165,3 +167,18 @@ public record DetectedAppDevice(
     string? DeviceId,
     string? AppVersion,
     string? AppDisplayName);
+
+public record AppProtectionPolicyItem(
+    string? Id,
+    string? DisplayName,
+    string? Description,
+    string? Platform,
+    string? PolicyType,
+    bool? IsAssigned,
+    string? PinRequired,
+    string? ManagedBrowser,
+    string? AllowedDataStorageLocations,
+    string? MinimumOsVersion,
+    string? MaximumOsVersion,
+    DateTimeOffset? CreatedDateTime,
+    DateTimeOffset? LastModifiedDateTime);

@@ -17,7 +17,6 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBox Text="{Binding DeviceSearchText, UpdateSourceTrigger=PropertyChanged}" 
                              Width="300" Padding="5" Margin="0,8,0,8" HorizontalAlignment="Left"
@@ -35,36 +34,6 @@
                             <DataGridTextColumn Header="Last Contact" Binding="{Binding LastContactedDateTime, StringFormat=g}" Width="140"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <GroupBox Grid.Row="1" Header="Device Details" Margin="0,8,0,0" 
-                              Visibility="{Binding SelectedDevice, Converter={StaticResource NullToCollapsed}}">
-                        <Grid Margin="10" DataContext="{Binding SelectedDevice}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="160"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="160"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Id}" Margin="0,2"/>
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Serial Number:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SerialNumber}" Margin="0,2"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Managed Device ID:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ManagedDeviceId}" Margin="0,2"/>
-                            <TextBlock Grid.Row="1" Grid.Column="2" Text="Enrollment Date:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding EnrollmentDateTime, StringFormat=g}" Margin="0,2"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Group Tag:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GroupTag}" Margin="0,2"/>
-                            <TextBlock Grid.Row="2" Grid.Column="2" Text="User:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding UserPrincipalName}" Margin="0,2"/>
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Manufacturer:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Manufacturer}" Margin="0,2"/>
-                            <TextBlock Grid.Row="3" Grid.Column="2" Text="Model:" FontWeight="SemiBold" Margin="0,2"/>
-                            <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding Model}" Margin="0,2"/>
-                        </Grid>
-                    </GroupBox>
                 </Grid>
             </TabItem>
 

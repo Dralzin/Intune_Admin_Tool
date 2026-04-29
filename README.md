@@ -35,10 +35,17 @@ A WPF desktop application built on .NET 8 for managing Microsoft Intune environm
 - Policy settings viewer
 - **Assignment details** showing which groups each profile is assigned to
 
+### App Protection Policies
+- View iOS/iPadOS, Android, and Windows app protection policies
+- Search by policy name and filter by platform
+- Policy details: PIN requirements, managed browser, data storage, OS version constraints
+- Assignment info with group resolution
+- Safe loading — individual platform endpoint failures don't prevent other policies from loading
+
 ### Autopilot
 - View Autopilot device identities with search by serial number or device name
-- Deployment profiles with detailed OOBE settings and assignment info
-- Enrollment Status Pages with full configuration details and assignment info
+- Deployment profiles with detailed OOBE settings and assignment info (fetched via `$expand=assignments`)
+- Enrollment Status Pages with full configuration details and assignment info (fetched via `$expand=assignments`)
 - Safe loading — individual tab failures don't prevent other data from loading
 
 ### Windows Updates Dashboard
@@ -62,6 +69,11 @@ A WPF desktop application built on .NET 8 for managing Microsoft Intune environm
   - Microsoft Edge Versions (with out-of-date detection)
   - Microsoft 365 Apps Versions (with out-of-date detection)
 - Cancel running reports at any time
+
+### Home
+- Welcome screen displayed after sign-in
+- Shows signed-in user and quick-action navigation buttons
+- Accessible from the "Home" item at the top of the navigation menu
 
 ### Settings
 - Configure Client ID and Tenant ID (editable when signed out, locked when signed in)
@@ -105,7 +117,7 @@ The following **delegated** permissions are required for full functionality:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Dralzin/Intune_Admin_Tool.git
+   git clone https://github.com/Ryan-Stadelman_vfl/Intune_Admin_Tool.git
    ```
 2. Open `Intune_Admin_Tool.sln` in Visual Studio 2022+ or later.
 3. Build and run the application.
@@ -122,10 +134,15 @@ By default, the app uses the well-known Microsoft Graph Command Line Tools clien
 
 ## Performance
 
-- **Caching** — Device and user data cached for 5 minutes to reduce redundant API calls
+- **Multi-tier caching** — Devices/users cached for 5 minutes; groups cached for 15 minutes
+- **Group lookup cache** — All groups fetched once and cached, eliminating N+1 API calls for assignment resolution
 - **Parallel fetching** — Independent API calls run concurrently via `Task.WhenAll`
-- **Centralized pagination** — Shared helper for beta API paged requests
+- **Request throttling** — `SemaphoreSlim(4)` limits concurrent Graph API calls to prevent 429 throttling
+- **429 retry logic** — Automatic exponential backoff retry (up to 3 attempts) for throttled requests
+- **`$expand=assignments`** — Profiles and assignments fetched in a single API call where supported
+- **Centralized pagination** — Shared helper for beta API paged requests with built-in throttle protection
 - **Selective `$select`** — Only required fields fetched from Graph to reduce payload size
+- **Splash screen** — IntuneLogo.png displayed instantly on startup while the app initializes
 
 ## Project Structure
 
@@ -135,6 +152,7 @@ IntuneAdminTool/
 ├── ViewModels/        # MVVM view models
 │   ├── DevicesViewModel.cs
 │   ├── AppsViewModel.cs
+│   ├── AppProtectionViewModel.cs
 │   ├── ComplianceViewModel.cs
 │   ├── ConfigurationViewModel.cs
 │   ├── AutopilotViewModel.cs

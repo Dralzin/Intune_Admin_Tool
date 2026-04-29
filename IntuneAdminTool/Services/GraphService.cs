@@ -14,9 +14,15 @@ public class GraphService : IGraphService
     // Caching for frequently-used data
     private List<ManagedDevice>? _cachedDevices;
     private List<User>? _cachedUsers;
+    private Dictionary<string, string>? _groupLookup;
     private DateTime _devicesCacheTime;
     private DateTime _usersCacheTime;
+    private DateTime _groupLookupCacheTime;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan LongCacheDuration = TimeSpan.FromMinutes(15);
+
+    // Throttling for parallel requests
+    private static readonly SemaphoreSlim _throttle = new(4, 4);
 
     public GraphService(IAuthService authService)
     {
@@ -28,6 +34,7 @@ public class GraphService : IGraphService
         _graphClient = null;
         _cachedDevices = null;
         _cachedUsers = null;
+        _groupLookup = null;
     }
 
     private GraphServiceClient GetClient()
@@ -42,6 +49,7 @@ public class GraphService : IGraphService
 
     /// <summary>
     /// Helper to fetch all pages from a raw beta/v1.0 URL and parse JSON items.
+    /// Includes retry logic for throttled (429) responses.
     /// </summary>
     private async Task<List<JsonElement>> FetchAllPagesRawAsync(string url)
     {
@@ -50,25 +58,47 @@ public class GraphService : IGraphService
 
         while (!string.IsNullOrEmpty(url))
         {
-            var requestInfo = new Microsoft.Kiota.Abstractions.RequestInformation
+            await _throttle.WaitAsync().ConfigureAwait(false);
+            try
             {
-                HttpMethod = Microsoft.Kiota.Abstractions.Method.GET,
-                UrlTemplate = url
-            };
+                var requestInfo = new Microsoft.Kiota.Abstractions.RequestInformation
+                {
+                    HttpMethod = Microsoft.Kiota.Abstractions.Method.GET,
+                    UrlTemplate = url
+                };
 
-            var stream = await client.RequestAdapter.SendPrimitiveAsync<System.IO.Stream>(requestInfo).ConfigureAwait(false);
-            if (stream == null) break;
+                System.IO.Stream? stream = null;
+                for (int attempt = 0; attempt < 3; attempt++)
+                {
+                    try
+                    {
+                        stream = await client.RequestAdapter.SendPrimitiveAsync<System.IO.Stream>(requestInfo).ConfigureAwait(false);
+                        break;
+                    }
+                    catch (Microsoft.Graph.Models.ODataErrors.ODataError ex) when (ex.ResponseStatusCode == 429)
+                    {
+                        var delay = (attempt + 1) * 2;
+                        await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
+                    }
+                }
 
-            using var doc = await JsonDocument.ParseAsync(stream).ConfigureAwait(false);
-            var root = doc.RootElement;
+                if (stream == null) break;
 
-            if (root.TryGetProperty("value", out var valueArray))
-            {
-                foreach (var item in valueArray.EnumerateArray())
-                    results.Add(item.Clone());
+                using var doc = await JsonDocument.ParseAsync(stream).ConfigureAwait(false);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("value", out var valueArray))
+                {
+                    foreach (var item in valueArray.EnumerateArray())
+                        results.Add(item.Clone());
+                }
+
+                url = root.TryGetProperty("@odata.nextLink", out var next) ? next.GetString()! : null!;
             }
-
-            url = root.TryGetProperty("@odata.nextLink", out var next) ? next.GetString()! : null!;
+            finally
+            {
+                _throttle.Release();
+            }
         }
 
         return results;
@@ -90,7 +120,7 @@ public class GraphService : IGraphService
                 "operatingSystem", "osVersion", "complianceState",
                 "lastSyncDateTime", "managedDeviceOwnerType", "managementAgent",
                 "emailAddress", "serialNumber", "model", "manufacturer",
-                "deviceCategoryDisplayName"
+                "deviceCategoryDisplayName", "isEncrypted"
             ];
         }).ConfigureAwait(false);
 
@@ -537,7 +567,7 @@ public class GraphService : IGraphService
 
     public async Task<List<AutopilotProfileItem>> GetAutopilotDeploymentProfilesAsync()
     {
-        var items = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeploymentProfiles?$top=999");
+        var items = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeploymentProfiles?$expand=assignments&$top=999");
         return items.Select(item =>
         {
             // Extract OOBE settings from nested object
@@ -581,7 +611,7 @@ public class GraphService : IGraphService
 
     public async Task<List<AutopilotEspItem>> GetEnrollmentStatusPagesAsync()
     {
-        var items = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceManagement/deviceEnrollmentConfigurations?$top=999");
+        var items = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceManagement/deviceEnrollmentConfigurations?$expand=assignments&$top=999");
         return items
             .Where(item => item.TryGetProperty("@odata.type", out var ot) &&
                            (ot.GetString()?.Contains("EnrollmentCompletionPage", StringComparison.OrdinalIgnoreCase) == true ||
@@ -623,7 +653,23 @@ public class GraphService : IGraphService
     {
         var items = await FetchAllPagesRawAsync(url);
         var assignments = new List<ProfileAssignment>();
+        var groupIdsToResolve = new HashSet<string>();
 
+        // First pass: collect all group IDs
+        foreach (var item in items)
+        {
+            if (item.TryGetProperty("target", out var target))
+            {
+                var groupId = target.TryGetProperty("groupId", out var gid) ? gid.GetString() : null;
+                if (!string.IsNullOrEmpty(groupId))
+                    groupIdsToResolve.Add(groupId);
+            }
+        }
+
+        // Resolve all group names via cached lookup
+        var groupNames = await ResolveGroupNamesAsync(groupIdsToResolve);
+
+        // Second pass: build assignments
         foreach (var item in items)
         {
             string? groupId = null;
@@ -649,28 +695,65 @@ public class GraphService : IGraphService
                 }
             }
 
-            string? groupName = null;
-            if (!string.IsNullOrEmpty(groupId))
-            {
-                try
-                {
-                    var client = GetClient();
-                    var group = await client.Groups[groupId].GetAsync(config =>
-                    {
-                        config.QueryParameters.Select = ["displayName"];
-                    }).ConfigureAwait(false);
-                    groupName = group?.DisplayName;
-                }
-                catch
-                {
-                    groupName = groupId;
-                }
-            }
+            var groupName = !string.IsNullOrEmpty(groupId) && groupNames.TryGetValue(groupId, out var name)
+                ? name : groupId ?? "Unknown";
 
-            assignments.Add(new ProfileAssignment(groupId, groupName ?? groupId ?? "Unknown", assignmentType));
+            assignments.Add(new ProfileAssignment(groupId, groupName, assignmentType));
         }
 
         return assignments;
+    }
+
+    /// <summary>
+    /// Resolves group IDs to display names using a cached lookup table.
+    /// Fetches all groups once and caches for LongCacheDuration.
+    /// </summary>
+    private async Task<Dictionary<string, string>> ResolveGroupNamesAsync(IEnumerable<string> groupIds)
+    {
+        await EnsureGroupLookupCacheAsync();
+        return _groupLookup!;
+    }
+
+    private async Task EnsureGroupLookupCacheAsync()
+    {
+        if (_groupLookup != null && DateTime.UtcNow - _groupLookupCacheTime < LongCacheDuration)
+            return;
+
+        var client = GetClient();
+        var lookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var response = await client.Groups.GetAsync(config =>
+        {
+            config.QueryParameters.Top = PageSize;
+            config.QueryParameters.Select = ["id", "displayName"];
+        }).ConfigureAwait(false);
+
+        if (response?.Value != null)
+        {
+            foreach (var g in response.Value)
+            {
+                if (g.Id != null && g.DisplayName != null)
+                    lookup[g.Id] = g.DisplayName;
+            }
+        }
+
+        while (response?.OdataNextLink != null)
+        {
+            response = await client.Groups
+                .WithUrl(response.OdataNextLink)
+                .GetAsync().ConfigureAwait(false);
+            if (response?.Value != null)
+            {
+                foreach (var g in response.Value)
+                {
+                    if (g.Id != null && g.DisplayName != null)
+                        lookup[g.Id] = g.DisplayName;
+                }
+            }
+        }
+
+        _groupLookup = lookup;
+        _groupLookupCacheTime = DateTime.UtcNow;
     }
 
     public async Task<List<WindowsUpdateRing>> GetWindowsUpdateRingsAsync()
@@ -731,6 +814,82 @@ public class GraphService : IGraphService
             item.TryGetProperty("lastModifiedDateTime", out var modified) && modified.ValueKind != JsonValueKind.Null
                 ? DateTimeOffset.Parse(modified.GetString()!) : null
         )).ToList();
+    }
+
+    public async Task<List<AppProtectionPolicyItem>> GetAppProtectionPoliciesAsync()
+    {
+        var results = new List<AppProtectionPolicyItem>();
+
+        // iOS/iPadOS App Protection Policies
+        try
+        {
+            var iosPolicies = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceAppManagement/iosManagedAppProtections?$top=999");
+            results.AddRange(iosPolicies.Select(item => ParseAppProtectionPolicy(item, "iOS/iPadOS", "App Protection")));
+        }
+        catch { }
+
+        // Android App Protection Policies
+        try
+        {
+            var androidPolicies = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceAppManagement/androidManagedAppProtections?$top=999");
+            results.AddRange(androidPolicies.Select(item => ParseAppProtectionPolicy(item, "Android", "App Protection")));
+        }
+        catch { }
+
+        // Windows Information Protection (WIP) policies
+        try
+        {
+            var wipPolicies = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceAppManagement/windowsInformationProtectionPolicies?$top=999");
+            results.AddRange(wipPolicies.Select(item => ParseAppProtectionPolicy(item, "Windows", "Information Protection")));
+        }
+        catch { }
+
+        // MDM Windows Information Protection policies
+        try
+        {
+            var mdmWipPolicies = await FetchAllPagesRawAsync("https://graph.microsoft.com/beta/deviceAppManagement/mdmWindowsInformationProtectionPolicies?$top=999");
+            results.AddRange(mdmWipPolicies.Select(item => ParseAppProtectionPolicy(item, "Windows (MDM)", "Information Protection")));
+        }
+        catch { }
+
+        return results;
+    }
+
+    private static AppProtectionPolicyItem ParseAppProtectionPolicy(System.Text.Json.JsonElement item, string platform, string policyType)
+    {
+        return new AppProtectionPolicyItem(
+            item.TryGetProperty("id", out var id) ? id.GetString() : null,
+            item.TryGetProperty("displayName", out var dn) ? dn.GetString() : null,
+            item.TryGetProperty("description", out var desc) ? desc.GetString() : null,
+            platform,
+            policyType,
+            item.TryGetProperty("isAssigned", out var ia) && ia.ValueKind == JsonValueKind.True,
+            item.TryGetProperty("pinRequired", out var pr) ? pr.ToString() : null,
+            item.TryGetProperty("managedBrowser", out var mb) ? mb.GetString() : null,
+            item.TryGetProperty("allowedDataStorageLocations", out var adsl) && adsl.ValueKind == JsonValueKind.Array
+                ? string.Join(", ", adsl.EnumerateArray().Select(a => a.GetString())) : null,
+            item.TryGetProperty("minimumRequiredOsVersion", out var minOs) ? minOs.GetString() : null,
+            item.TryGetProperty("maximumRequiredOsVersion", out var maxOs) ? maxOs.GetString() : null,
+            item.TryGetProperty("createdDateTime", out var created) && created.ValueKind != JsonValueKind.Null
+                ? DateTimeOffset.Parse(created.GetString()!) : null,
+            item.TryGetProperty("lastModifiedDateTime", out var modified) && modified.ValueKind != JsonValueKind.Null
+                ? DateTimeOffset.Parse(modified.GetString()!) : null
+        );
+    }
+
+    public async Task<List<ProfileAssignment>> GetAppProtectionPolicyAssignmentsAsync(string policyId, string policyType)
+    {
+        var endpoint = policyType switch
+        {
+            "iOS/iPadOS" => $"https://graph.microsoft.com/beta/deviceAppManagement/iosManagedAppProtections/{policyId}/assignments",
+            "Android" => $"https://graph.microsoft.com/beta/deviceAppManagement/androidManagedAppProtections/{policyId}/assignments",
+            "Windows" => $"https://graph.microsoft.com/beta/deviceAppManagement/windowsInformationProtectionPolicies/{policyId}/assignments",
+            "Windows (MDM)" => $"https://graph.microsoft.com/beta/deviceAppManagement/mdmWindowsInformationProtectionPolicies/{policyId}/assignments",
+            _ => null
+        };
+
+        if (endpoint == null) return [];
+        return await GetAssignmentsFromUrlAsync(endpoint);
     }
 
     public async Task<List<DetectedAppDevice>> GetDetectedAppDevicesAsync(string appName)

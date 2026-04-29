@@ -39,6 +39,7 @@ public partial class MainViewModel : ObservableObject
     public ComplianceViewModel ComplianceViewModel { get; }
     public ConfigurationViewModel ConfigurationViewModel { get; }
     public AppsViewModel AppsViewModel { get; }
+    public AppProtectionViewModel AppProtectionViewModel { get; }
     public AutopilotViewModel AutopilotViewModel { get; }
     public WindowsUpdatesViewModel WindowsUpdatesViewModel { get; }
     public ReportsViewModel ReportsViewModel { get; }
@@ -53,6 +54,7 @@ public partial class MainViewModel : ObservableObject
         ComplianceViewModel = new ComplianceViewModel(graphService);
         ConfigurationViewModel = new ConfigurationViewModel(graphService);
         AppsViewModel = new AppsViewModel(graphService);
+        AppProtectionViewModel = new AppProtectionViewModel(graphService);
         AutopilotViewModel = new AutopilotViewModel(graphService);
         WindowsUpdatesViewModel = new WindowsUpdatesViewModel(graphService);
         ReportsViewModel = new ReportsViewModel(graphService);
@@ -72,7 +74,7 @@ public partial class MainViewModel : ObservableObject
             UserName = _authService.UserName;
             StatusMessage = $"Signed in as {UserName}";
             BringAppToForeground();
-            NavigateToDevices();
+            NavigateToHome();
         }
         catch (Exception ex)
         {
@@ -102,6 +104,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void NavigateToHome()
+    {
+        CurrentView = null;
+    }
+
+    [RelayCommand]
     private void NavigateToDevices()
     {
         CurrentView = DevicesViewModel;
@@ -127,6 +135,13 @@ public partial class MainViewModel : ObservableObject
     {
         CurrentView = AppsViewModel;
         _ = AppsViewModel.LoadAppsCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private void NavigateToAppProtection()
+    {
+        CurrentView = AppProtectionViewModel;
+        _ = AppProtectionViewModel.LoadPoliciesCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]

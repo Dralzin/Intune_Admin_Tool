@@ -62,6 +62,13 @@
                     <!-- Navigation Items -->
                     <ScrollViewer DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="0,8">
+                            <Button Command="{Binding NavigateToHomeCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Home" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                             <Button Command="{Binding NavigateToDevicesCommand}" Style="{StaticResource NavButtonStyle}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE8EA;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
@@ -88,6 +95,13 @@
                                     <TextBlock Text="&#xE74C;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
                                                VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <TextBlock Text="Apps" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding NavigateToAppProtectionCommand}" Style="{StaticResource NavButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="App Protection" FontSize="13" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Command="{Binding NavigateToAutopilotCommand}" Style="{StaticResource NavButtonStyle}">
@@ -118,8 +132,28 @@
 
             <!-- Content Area -->
             <Border Grid.Column="1" Background="#FAF9F8" Padding="24,16">
-                <ContentControl Content="{Binding CurrentView}">
-                    <ContentControl.Resources>
+                <Grid>
+                    <!-- Home/Welcome Screen (shown when no view is selected) -->
+                    <StackPanel Visibility="{Binding CurrentView, Converter={StaticResource NullToVisible}}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="600">
+                        <Image Source="Images/IntuneLogo.png" Width="64" Height="64" Margin="0,0,0,16" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Welcome to Microsoft Intune Admin Tool" FontSize="24" FontWeight="Light" 
+                                   HorizontalAlignment="Center" Foreground="#323130" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding UserName, StringFormat='Signed in as {0}'}" 
+                                   HorizontalAlignment="Center" Foreground="#605E5C" FontSize="14" Margin="0,0,0,24"/>
+                        <TextBlock TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center" 
+                                   Foreground="#605E5C" FontSize="13" Margin="0,0,0,32"
+                                   Text="Use the navigation menu on the left to manage devices, apps, compliance policies, configuration profiles, and more."/>
+                        <WrapPanel HorizontalAlignment="Center">
+                            <Button Content="Devices" Command="{Binding NavigateToDevicesCommand}" Margin="6" Padding="20,10" Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button Content="Apps" Command="{Binding NavigateToAppsCommand}" Margin="6" Padding="20,10" Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button Content="Reports" Command="{Binding NavigateToReportsCommand}" Margin="6" Padding="20,10" Style="{StaticResource PrimaryButtonStyle}"/>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <!-- Active View Content -->
+                    <ContentControl Content="{Binding CurrentView}" Visibility="{Binding CurrentView, Converter={StaticResource NullToCollapsed}}">
+                        <ContentControl.Resources>
                         <DataTemplate DataType="{x:Type vm:DevicesViewModel}">
                             <views:DevicesView/>
                         </DataTemplate>
@@ -131,6 +165,9 @@
                         </DataTemplate>
                         <DataTemplate DataType="{x:Type vm:AppsViewModel}">
                             <views:AppsView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:AppProtectionViewModel}">
+                            <views:AppProtectionView/>
                         </DataTemplate>
                         <DataTemplate DataType="{x:Type vm:AutopilotViewModel}">
                             <views:AutopilotView/>
@@ -146,6 +183,7 @@
                         </DataTemplate>
                     </ContentControl.Resources>
                 </ContentControl>
+                </Grid>
             </Border>
         </Grid>
 

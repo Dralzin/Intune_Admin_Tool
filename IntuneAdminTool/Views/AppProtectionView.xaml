@@ -1,0 +1,96 @@
+<UserControl x:Class="IntuneAdminTool.Views.AppProtectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Filters -->
+        <StackPanel Orientation="Horizontal" Margin="10">
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="300" Padding="5" VerticalContentAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding PlatformFilterOptions}" SelectedItem="{Binding SelectedPlatformFilter}" Width="150" Margin="5,0" Padding="5" VerticalContentAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Status -->
+        <StackPanel Grid.Row="1" Margin="10,0">
+            <TextBlock Text="Loading App Protection Policies..." Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"/>
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" Visibility="{Binding ErrorMessage, Converter={StaticResource NullToCollapsed}}"/>
+        </StackPanel>
+
+        <!-- Policies DataGrid -->
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Policies}" SelectedItem="{Binding SelectedPolicy}"
+                  AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="True" Margin="10">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="250"/>
+                <DataGridTextColumn Header="Platform" Binding="{Binding Platform}" Width="100"/>
+                <DataGridTextColumn Header="Type" Binding="{Binding PolicyType}" Width="140"/>
+                <DataGridTextColumn Header="Assigned" Binding="{Binding IsAssigned}" Width="80"/>
+                <DataGridTextColumn Header="PIN Required" Binding="{Binding PinRequired}" Width="100"/>
+                <DataGridTextColumn Header="Min OS" Binding="{Binding MinimumOsVersion}" Width="80"/>
+                <DataGridTextColumn Header="Last Modified" Binding="{Binding LastModifiedDateTime, StringFormat=g}" Width="140"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Policy Details -->
+        <GroupBox Grid.Row="3" Header="Policy Details" Margin="10,0,10,10"
+                  Visibility="{Binding SelectedPolicy, Converter={StaticResource NullToCollapsed}}">
+            <StackPanel>
+                <Grid Margin="10" DataContext="{Binding SelectedPolicy}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Id}" Margin="0,2"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Platform:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Platform}" Margin="0,2"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Display Name:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DisplayName}" Margin="0,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Policy Type:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding PolicyType}" Margin="0,2"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Description:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Description}" TextWrapping="Wrap" Margin="0,2"/>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="PIN Required:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding PinRequired}" Margin="0,2"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Managed Browser:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ManagedBrowser}" Margin="0,2"/>
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Allowed Data Storage:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding AllowedDataStorageLocations}" TextWrapping="Wrap" Margin="0,2"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Min OS Version:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding MinimumOsVersion}" Margin="0,2"/>
+                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Max OS Version:" FontWeight="SemiBold" Margin="0,2"/>
+                    <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding MaximumOsVersion}" Margin="0,2"/>
+                </Grid>
+
+                <!-- Assignments -->
+                <TextBlock Text="Assignments" FontWeight="SemiBold" Margin="10,8,0,4" Foreground="#0078D4"/>
+                <TextBlock Text="{Binding AssignmentsStatus}" Margin="10,2,0,4" Foreground="#605E5C" FontStyle="Italic"
+                           Visibility="{Binding AssignmentsStatus, Converter={StaticResource NullToCollapsed}}"/>
+                <DataGrid ItemsSource="{Binding PolicyAssignments}"
+                          AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="120"
+                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          BorderThickness="1" BorderBrush="#EDEBE9" Margin="10,0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Group" Binding="{Binding GroupDisplayName}" Width="300"/>
+                        <DataGridTextColumn Header="Assignment Type" Binding="{Binding AssignmentType}" Width="120"/>
+                        <DataGridTextColumn Header="Group ID" Binding="{Binding GroupId}" Width="280"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </GroupBox>
+    </Grid>
+</UserControl>

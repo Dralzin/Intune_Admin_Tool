@@ -5,6 +5,7 @@
     <Application.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
         <converters:NullToCollapsedConverter x:Key="NullToCollapsed"/>
+        <converters:NullToVisibleConverter x:Key="NullToVisible"/>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
 
         <!-- Header Button Style -->

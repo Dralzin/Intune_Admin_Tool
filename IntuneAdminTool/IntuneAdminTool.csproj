@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Images\IntuneLogo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,7 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Images\IntuneLogo.png" />
+    <SplashScreen Include="Images\IntuneLogo.png" />
   </ItemGroup>
 
   <ItemGroup>
