@@ -16,5 +16,5 @@ C:\Temp\Github\Intune_Admin_Tool\IntuneAdminTool\App.xaml
 223-666700906
 MainWindow.xaml;Views\AppProtectionView.xaml;Views\AppsView.xaml;Views\AutopilotView.xaml;Views\ComplianceView.xaml;Views\ConfigurationView.xaml;Views\DevicesView.xaml;Views\M365AppsView.xaml;Views\ReportsView.xaml;Views\SettingsView.xaml;Views\WindowsUpdatesView.xaml;
 images\intunelogo.png
-True
+False
 
