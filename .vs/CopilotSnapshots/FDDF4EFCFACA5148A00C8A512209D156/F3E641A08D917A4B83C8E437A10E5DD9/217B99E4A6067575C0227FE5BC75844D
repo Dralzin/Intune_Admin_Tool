@@ -1,4 +1,4 @@
-namespace IntuneAdminTool.ViewModels;
+﻿namespace IntuneAdminTool.ViewModels;
 
 using System.Collections.ObjectModel;
 using System.IO;
@@ -55,7 +55,7 @@ public partial class ReportsViewModel : ObservableObject
                 ReportCategory.Apps, GenerateAppsByTypeAsync),
             new ReportDefinition("Windows Devices Not Encrypted", "Windows devices not encrypted with BitLocker",
                 ReportCategory.Devices, GenerateUnencryptedWindowsDevicesAsync),
-            new ReportDefinition("BitLocker Encryption Status", "BitLocker encryption status of all Windows devices",
+            new ReportDefinition("BitLocker Encryption Status",
                 ReportCategory.Devices, GenerateBitlockerStatusReportAsync),
         ];
     }

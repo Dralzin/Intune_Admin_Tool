@@ -1,7 +1,8 @@
-namespace IntuneAdminTool.ViewModels;
+﻿namespace IntuneAdminTool.ViewModels;
 
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IntuneAdminTool.Services;
@@ -55,6 +56,9 @@ public partial class ReportsViewModel : ObservableObject
                 ReportCategory.Apps, GenerateAppsByTypeAsync),
             new ReportDefinition("Windows Devices Not Encrypted", "Windows devices not encrypted with BitLocker",
                 ReportCategory.Devices, GenerateUnencryptedWindowsDevicesAsync),
+
+            new ReportDefinition("Microsoft 365 Apps Versions", "Microsoft 365 Apps versions installed on Windows devices with out-of-date detection",
+                ReportCategory.Apps, GenerateM365AppsVersionReportAsync),
             new ReportDefinition("BitLocker Encryption Status", "BitLocker encryption status of all Windows devices",
                 ReportCategory.Devices, GenerateBitlockerStatusReportAsync),
         ];
@@ -307,6 +311,195 @@ public partial class ReportsViewModel : ObservableObject
             }).ToList();
 
         return (["Device Name", "User", "UPN", "OS Version", "Compliance State", "Encrypted", "Last Sync"], unencrypted);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateChromeVersionReportAsync()
+    {
+        // Get the latest stable Chrome version
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient();
+            latestVersion = (await httpClient.GetStringAsync(
+                "https://chromiumdash.appspot.com/fetch/releases?channel=Stable&platform=Windows&num=1"))
+                .Split("\"version\":\"")
+                .Skip(1)
+                .FirstOrDefault()
+                ?.Split('"')
+                .FirstOrDefault();
+        }
+        catch
+        {
+            // If we can't fetch latest version, we'll still show installed versions
+        }
+
+        // Get Chrome detected app info from Intune
+        var chromeDevices = await _graphService.GetDetectedAppDevicesAsync("Google Chrome");
+
+        var data = chromeDevices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
+    }
+
+    private static int CompareVersions(string installed, string latest)
+    {
+        var installedParts = installed.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+        var latestParts = latest.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+
+        var maxLength = Math.Max(installedParts.Length, latestParts.Length);
+        for (int i = 0; i < maxLength; i++)
+        {
+            var a = i < installedParts.Length ? installedParts[i] : 0;
+            var b = i < latestParts.Length ? latestParts[i] : 0;
+            if (a < b) return -1;
+            if (a > b) return 1;
+        }
+        return 0;
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateFirefoxVersionReportAsync()
+    {
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetStringAsync("https://product-details.mozilla.org/1.0/firefox_versions.json");
+            // Parse: {"LATEST_FIREFOX_VERSION":"xxx.x.x",...}
+            var match = System.Text.RegularExpressions.Regex.Match(response, "\"LATEST_FIREFOX_VERSION\"\\s*:\\s*\"([^\"]+)\"");
+            if (match.Success) latestVersion = match.Groups[1].Value;
+        }
+        catch { }
+
+        var firefoxDevices = await _graphService.GetDetectedAppDevicesAsync("Firefox");
+
+        var data = firefoxDevices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateEdgeVersionReportAsync()
+    {
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            var response = await httpClient.GetStringAsync("https://edgeupdates.microsoft.com/api/products");
+            // Parse JSON to find Stable channel version
+            var doc = System.Text.Json.JsonDocument.Parse(response);
+            foreach (var product in doc.RootElement.EnumerateArray())
+            {
+                if (product.TryGetProperty("Product", out var prod) &&
+                    string.Equals(prod.GetString(), "Stable", StringComparison.OrdinalIgnoreCase) &&
+                    product.TryGetProperty("Releases", out var releases))
+                {
+                    foreach (var release in releases.EnumerateArray())
+                    {
+                        if (release.TryGetProperty("ProductVersion", out var ver))
+                        {
+                            latestVersion = ver.GetString();
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        catch { }
+
+        var edgeDevices = await _graphService.GetDetectedAppDevicesAsync("Microsoft Edge");
+
+        var data = edgeDevices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
+    }
+
+    private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateM365AppsVersionReportAsync()
+    {
+        string? latestVersion = null;
+        try
+        {
+            using var httpClient = new HttpClient();
+            // Microsoft publishes Office update history — use Current Channel latest
+            var response = await httpClient.GetStringAsync("https://clients.config.office.net/releases/v1.0/OfficeReleases");
+            // Extract the latest Current Channel version
+            var match = System.Text.RegularExpressions.Regex.Match(response,
+                "\"latestVersion\"\\s*:\\s*\"([^\"]+)\"");
+            if (match.Success) latestVersion = match.Groups[1].Value;
+        }
+        catch { }
+
+        var m365Devices = await _graphService.GetDetectedAppDevicesAsync("Microsoft 365 Apps");
+        // Also check for "Microsoft Office" if no results
+        if (m365Devices.Count == 0)
+            m365Devices = await _graphService.GetDetectedAppDevicesAsync("Microsoft Office");
+
+        var data = m365Devices
+            .OrderBy(d => d.DeviceName)
+            .Select(d =>
+            {
+                var isOutOfDate = !string.IsNullOrEmpty(latestVersion) && !string.IsNullOrEmpty(d.AppVersion)
+                    ? CompareVersions(d.AppVersion, latestVersion) < 0 ? "Yes" : "No"
+                    : "Unknown";
+
+                return new Dictionary<string, string>
+                {
+                    ["Device Name"] = d.DeviceName ?? "",
+                    ["Installed Version"] = d.AppVersion ?? "Unknown",
+                    ["Latest Version"] = latestVersion ?? "Unable to determine",
+                    ["Out of Date"] = isOutOfDate,
+                    ["App Name"] = d.AppDisplayName ?? ""
+                };
+            }).ToList();
+
+        return (["Device Name", "Installed Version", "Latest Version", "Out of Date", "App Name"], data);
     }
 
     private async Task<(List<string> Columns, List<Dictionary<string, string>> Data)> GenerateBitlockerStatusReportAsync()

@@ -1,4 +1,4 @@
-namespace IntuneAdminTool.ViewModels;
+﻿namespace IntuneAdminTool.ViewModels;
 
 using System.Collections.ObjectModel;
 using System.IO;

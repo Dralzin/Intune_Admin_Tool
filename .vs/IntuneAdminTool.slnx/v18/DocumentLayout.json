@@ -1,28 +1,7 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Temp\\Github\\Intune_Admin_Tool\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|c:\\temp\\github\\intune_admin_tool\\intuneadmintool\\services\\graphservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|solutionrelative:intuneadmintool\\services\\graphservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|c:\\temp\\github\\intune_admin_tool\\intuneadmintool\\viewmodels\\windowsupdatesviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|solutionrelative:intuneadmintool\\viewmodels\\windowsupdatesviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|c:\\temp\\github\\intune_admin_tool\\intuneadmintool\\viewmodels\\reportsviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|solutionrelative:intuneadmintool\\viewmodels\\reportsviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|c:\\temp\\github\\intune_admin_tool\\intuneadmintool\\intuneadmintool.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|solutionrelative:intuneadmintool\\intuneadmintool.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|c:\\temp\\github\\intune_admin_tool\\intuneadmintool\\services\\igraphservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{0ADE52E0-2BA4-5D3E-C84E-48CC9E006DD3}|IntuneAdminTool\\IntuneAdminTool.csproj|solutionrelative:intuneadmintool\\services\\igraphservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    }
-  ],
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -30,76 +9,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 52,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": -1,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "WindowsUpdatesViewModel.cs",
-              "DocumentMoniker": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\ViewModels\\WindowsUpdatesViewModel.cs",
-              "RelativeDocumentMoniker": "IntuneAdminTool\\ViewModels\\WindowsUpdatesViewModel.cs",
-              "ToolTip": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\ViewModels\\WindowsUpdatesViewModel.cs",
-              "RelativeToolTip": "IntuneAdminTool\\ViewModels\\WindowsUpdatesViewModel.cs",
-              "ViewState": "AgIAADoAAAAAAAAAAADgvwAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-30T13:13:24.703Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "GraphService.cs",
-              "DocumentMoniker": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\Services\\GraphService.cs",
-              "RelativeDocumentMoniker": "IntuneAdminTool\\Services\\GraphService.cs",
-              "ToolTip": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\Services\\GraphService.cs",
-              "RelativeToolTip": "IntuneAdminTool\\Services\\GraphService.cs",
-              "ViewState": "AgIAAC8AAAAAAAAAAAAqwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-30T12:58:13.252Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "IGraphService.cs",
-              "DocumentMoniker": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\Services\\IGraphService.cs",
-              "RelativeDocumentMoniker": "IntuneAdminTool\\Services\\IGraphService.cs",
-              "ToolTip": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\Services\\IGraphService.cs",
-              "RelativeToolTip": "IntuneAdminTool\\Services\\IGraphService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-30T12:57:57.69Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ReportsViewModel.cs",
-              "DocumentMoniker": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\ViewModels\\ReportsViewModel.cs",
-              "RelativeDocumentMoniker": "IntuneAdminTool\\ViewModels\\ReportsViewModel.cs",
-              "ToolTip": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\ViewModels\\ReportsViewModel.cs",
-              "RelativeToolTip": "IntuneAdminTool\\ViewModels\\ReportsViewModel.cs",
-              "ViewState": "AgIAAPEBAAAAAAAAAAAAAPgBAAB6AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-30T12:55:07.159Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "IntuneAdminTool",
-              "DocumentMoniker": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\IntuneAdminTool.csproj",
-              "RelativeDocumentMoniker": "IntuneAdminTool\\IntuneAdminTool.csproj",
-              "ToolTip": "C:\\Temp\\Github\\Intune_Admin_Tool\\IntuneAdminTool\\IntuneAdminTool.csproj",
-              "RelativeToolTip": "IntuneAdminTool\\IntuneAdminTool.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-04-30T12:45:39.353Z",
-              "EditorCaption": ""
             }
           ]
         }
